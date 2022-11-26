@@ -1,4 +1,5 @@
-const { select, forceSimulation, forceManyBody, forceLink, forceCenter } = d3;
+const { select, forceSimulation, forceManyBody, forceLink, forceCenter, drag } =
+  d3;
 
 import { nodes, links, MANY_BODY_STRENGTH } from "./data.js";
 
@@ -17,19 +18,29 @@ const simulation = forceSimulation(nodes)
   )
   .force("center", forceCenter(w / 2, h / 2));
 
+const dragInteraction = drag().on("drag", (event, node) => {
+  node.fx = event.x;
+  node.fy = event.y;
+  simulation.alpha(1);
+  simulation.restart();
+});
+
 const lines = svg
   .selectAll("lines")
   .data(links)
   .enter()
   .append("line")
-  .attr("stroke", "black");
+  .attr("stroke-width", 2)
+  .attr("stroke", (link) => link.color || "black");
 
 const circles = svg
   .selectAll("circle")
   .data(nodes)
   .enter()
   .append("circle")
-  .attr("fill", "grey");
+  .attr("r", (node) => node.size)
+  .attr("fill", (node) => node.color || "gray")
+  .call(dragInteraction);
 
 const text = svg
   .selectAll("text")
@@ -38,13 +49,12 @@ const text = svg
   .append("text")
   .attr("text-anchor", "middle")
   .attr("alignment-baseline", "middle")
+  // Set text to not selectable so wont mess the drap and drop.
+  .style("pointer-events", "none")
   .text((node) => node.id);
 
 simulation.on("tick", () => {
-  circles
-    .attr("cx", (node) => node.x)
-    .attr("cy", (node) => node.y)
-    .attr("r", (node) => node.size);
+  circles.attr("cx", (node) => node.x).attr("cy", (node) => node.y);
   text.attr("x", (node) => node.x).attr("y", (node) => node.y);
   lines
     .attr("x1", (link) => link.source.x)
